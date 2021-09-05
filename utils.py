@@ -1,5 +1,8 @@
 from os import system, name
 from datetime import datetime, time
+import platform
+import subprocess
+import os
 
 
 # define our clear function
@@ -10,30 +13,6 @@ def clear():
     # for mac and linux(here, os.name is 'posix')
     else:
         _ = system('clear')
-
-
-# def str2time(strtime, format=None):
-#     # # Function to convert string to datetime
-#     # format = '%b %d %Y %I:%M%p'  # The format
-#     # datetime_str = datetime.datetime.strptime(date_time, format)
-#     #
-#     #     return datetime_str
-#     #
-#     # # Driver code
-#     # date_time = 'Dec 4 2018 10:07AM'
-#     # print(convert(date_time))
-#     import time
-#
-#     # Function to convert string to datetime
-#     datetime_str = time.mktime(strtime)
-#
-#     format = format or "%H:%M"  # The format
-#     dateTime = time.strftime(format, time.gmtime(datetime_str))
-#     return dateTime
-#
-#     # Driver code
-#     # date_time = (2018, 12, 4, 10, 7, 00, 1, 48, 0)
-#     # print(convert(date_time))
 
 
 def is_time_between(begin_time, end_time, check_time=None):
@@ -49,4 +28,18 @@ def is_time_between(begin_time, end_time, check_time=None):
         return begin_time <= check_time <= end_time
     else: # crosses midnight
         return check_time >= begin_time or check_time <= end_time
+
+
+def ping(host='8.8.8.8'):
+    parameter = '-n' if platform.system().lower() == 'windows' else '-c'
+    with open(os.devnull, 'w') as DEVNULL:
+        try:
+            subprocess.check_call(
+                ['ping', parameter, '1', host],
+                stdout=DEVNULL,  # suppress output
+                stderr=DEVNULL
+            )
+            is_up = True
+        except subprocess.CalledProcessError:
+            is_up = False
 
