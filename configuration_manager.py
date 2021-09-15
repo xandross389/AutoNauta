@@ -1,0 +1,197 @@
+import json
+import os
+
+DEFAULT_CONFIG_FILENAME = './config.json'
+
+
+class Configuration:
+    def __init__(self, username='', password='', check_conn_page='http://www.google.com.cu/',
+                 conn_begin_time='07:30', conn_end_time='17:30', conn_check_freq=30,
+                 disconn_check_freq=60, clean_logout_retry_times=5,
+                 router_ip='', router_username='', router_password='', check_ping_host='8.8.8.8',
+                 force_connection_close=False):
+        self._username = username
+        self._password = password
+        self._router_ip = router_ip
+        self._router_username = router_username
+        self._router_password = router_password
+        self._check_connection_page = check_conn_page
+        self._check_ping_host = check_ping_host
+        self._connection_begin_time = conn_begin_time
+        self._connection_end_time = conn_end_time
+        self._force_connection_close = force_connection_close  # restarts router if True
+        self._connection_check_frequency = conn_check_freq  # frequency in minutes
+        self._disconnection_check_frequency = disconn_check_freq  # frequency in minutes
+        self._clean_logout_retry_times = clean_logout_retry_times
+
+    @property
+    def username(self):
+        return self._username
+
+    @property
+    def password(self):
+        return self._password
+
+    @property
+    def connection_begin_time(self):
+        return self._connection_begin_time
+
+    @property
+    def connection_end_time(self):
+        return self._connection_end_time
+
+    @property
+    def connection_check_frequency(self):
+        return self._connection_check_frequency
+
+    @property
+    def disconnection_check_frequency(self):
+        return self._disconnection_check_frequency
+
+    @property
+    def router_ip(self):
+        return self._router_ip
+
+    @property
+    def router_username(self):
+        return self._router_username
+
+    @property
+    def router_password(self):
+        return self._router_password
+
+    @property
+    def check_connection_page(self):
+        return self._check_connection_page
+
+    @property
+    def check_ping_host(self):
+        return self._check_ping_host
+
+    @property
+    def force_connection_close(self):
+        return self._force_connection_close
+
+    @property
+    def clean_logout_retry_times(self):
+        return self._clean_logout_retry_times
+
+    @username.setter
+    def username(self, value):
+        self._username = value
+
+    @password.setter
+    def password(self, value):
+        self._password = value
+
+    @router_ip.setter
+    def router_ip(self, value):
+        self._router_ip = value
+
+    @router_username.setter
+    def router_username(self, value):
+        self._router_username = value
+
+    @router_password.setter
+    def router_password(self, value):
+        self._router_password = value
+
+    @check_ping_host.setter
+    def check_ping_host(self, value):
+        self._check_ping_host = value
+
+    @connection_begin_time.setter
+    def connection_begin_time(self, value):
+        self._connection_begin_time = value
+
+    @connection_end_time.setter
+    def connection_end_time(self, value):
+        self._connection_end_time = value
+
+    @force_connection_close.setter
+    def force_connection_close(self, value):
+        self._force_connection_close = value
+
+    @clean_logout_retry_times.setter
+    def clean_logout_retry_times(self, value):
+        self._clean_logout_retry_times = value
+
+    @disconnection_check_frequency.setter
+    def disconnection_check_frequency(self, value):
+        self._disconnection_check_frequency = value
+
+    @check_connection_page.setter
+    def check_connection_page(self, value):
+        self._check_connection_page = value
+
+    @connection_check_frequency.setter
+    def connection_check_frequency(self, value):
+        self._connection_check_frequency = value
+
+
+class ConfigurationManager:
+    def __init__(self, config_file=DEFAULT_CONFIG_FILENAME):
+        self._config_file = config_file
+        self._config = Configuration()
+
+    def config(self):
+        return self._config
+
+    def create_default_configuration_file(self):
+        config = {
+            'username': self._config.username,
+            'password': self._config.password,
+            'router_ip': self._config.router_ip,
+            'router_username': self._config.router_username,
+            'router_password': self._config.router_password,
+            'check_connection_page': self._config.check_connection_page,
+            'check_ping_host': self._config.check_ping_host,
+            'connection_begin_time': self._config.connection_begin_time,
+            'connection_end_time': self._config.connection_end_time,
+            'force_connection_close': self._config.force_connection_close,
+            'connection_check_frequency': self._config.connection_check_frequency,
+            'disconnection_check_frequency': self._config.disconnection_check_frequency,
+            'clean_logout_retry_times': self._config.clean_logout_retry_times
+        }
+
+        with open(self._config_file, 'w') as outfile:
+            json.dump(config, outfile, sort_keys=True, indent=4)
+
+    def load_configuration(self):
+        if not os.path.isfile(self._config_file):
+            self.create_default_configuration_file()
+
+        try:
+            with open(self._config_file, "r") as read_file:
+                config_string = json.load(read_file)
+
+                try:
+                    self._config.username = config_string['username']
+                    self._config.password = config_string['password']
+                    self._config.password = config_string['password']
+                    self._config.router_ip = config_string['router_ip']
+                    self._config.router_username = config_string['router_username']
+                    self._config.router_password = config_string['router_password']
+                    self._config.check_connection_page = config_string['check_connection_page']
+                    self._config.check_ping_host = config_string['check_ping_host']
+                    self._config.connection_begin_time = config_string['connection_begin_time']
+                    self._config.connection_end_time = config_string['connection_end_time']
+                    self._config.force_connection_close = config_string['force_connection_close']
+                    self._config.connection_check_frequency = config_string['connection_check_frequency']
+                    self._config.disconnection_check_frequency = config_string['disconnection_check_frequency']
+                    self._config.clean_logout_retry_times = config_string['clean_logout_retry_times']
+
+                except Exception as asign_error:
+                    print('Error asigning json field - ' + str(asign_error))
+        except Exception as file_err:
+            print('Err loading json from file - ' + str(file_err))
+        finally:
+            read_file.close()
+            return self._config
+
+    def get_config(self, config_file=DEFAULT_CONFIG_FILENAME):
+        self._config_file = config_file
+
+        return self.load_configuration()
+
+
