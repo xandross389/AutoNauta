@@ -1,20 +1,7 @@
 from utils import ping
-from ipaddress import ip_address
-from utils import ping
 from time import sleep
 from telnetlib import Telnet
-
-from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from selenium import webdriver
-from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-
-# modelo del router tplink td-w8961n
 
 
 class Router:
@@ -31,14 +18,15 @@ class Router:
     XPATH_LOGIN_BUTTON_LOCATOR = '/html/body/form/table/tbody/tr/td/table/tbody/tr[2]/td[2]/table[2]/tbody/tr[5]/td/input'
     XPATH_MAINTENANCE_SHEET_LOCATOR = '/html/body/div/table/tbody/tr/td[2]/table[1]/tbody/tr/td[5]'
     XPATH_RESTART_BUTTON_LOCATOR = '/html/body/div/table/tbody/tr/td[2]/table[3]/tbody/tr/td[7]/a'
-    # Console
+    # Console ralated vars
     CONSOLE_USERNAME_TEXT = 'Username:'
     CONSOLE_PASSWORD_TEXT = 'Password:'
     CONSOLE_SUCCESS_SHELL_TEXT = '>'
     CONSOLE_TERMINAL_TYPE = 'vt100'
-    CONSOLE_RESTART_COMMAND = 'sys restart'
+    CONSOLE_RESTART_COMMAND = 'sys restart' #'reboot'
     CONSOLE_RESTART_CONFIRMATION_TEXT = 'System will reboot! Continue?[Y/N]:'
-    CONSOLE_RESTART_CONFIRMATION_COMMAND = ''
+    CONSOLE_RESTART_CONFIRMATION_COMMAND = 'Y'
+    DEFAULT_TIMEOUT = 30
 
     def __init__(self, ip_address='', username='', password='', vendor='TP-LINK', model='TD-W8961N'):
         self.web_driver = self.get_web_driver()
@@ -68,7 +56,6 @@ class Router:
         # Open Browser
         driver = webdriver.Chrome(executable_path=chromium_binary_path, options=options)
         driver.set_page_load_timeout(500)
-        # driver.implicitly_wait(0.5)
 
         return driver
 
@@ -112,43 +99,37 @@ class Router:
         sleep(5)
         return not self.ping()
 
-    def console_restart(self, debug=False):
+    def console_restart(self, debug=False, timeout=DEFAULT_TIMEOUT):
         if self.model in ['TD-W8961N']:
             telnet = Telnet()
-            telnet.open(self.ip_address)
+            telnet.open(self.ip_address, timeout=timeout)
 
             print("waiting username ask") if debug else None
-            # telnet.read_until(b"Username:")
-            telnet.read_until(bytes(self.CONSOLE_USERNAME_TEXT))
+            telnet.read_until(bytes(self.CONSOLE_USERNAME_TEXT.encode('ascii')), timeout=timeout)
             print("sending username") if debug else None
-            telnet.write(self.username.encode('ascii'))
+            telnet.write(bytes(self.username, 'ascii') + b"\n")
 
             print("waiting password ask") if debug else None
-            # telnet.read_until(b"Password:")
-            telnet.read_until(bytes(self.CONSOLE_PASSWORD_TEXT))
+            telnet.read_until(bytes(self.CONSOLE_PASSWORD_TEXT.encode('ascii')), timeout=timeout)
             print("sending password") if debug else None
-            telnet.write(self.password.encode('ascii'))
+            telnet.write(bytes(self.password, 'ascii') + b"\n")
 
             print("waiting loggin success") if debug else None
-            # telnet.read_until(b">")
-            telnet.read_until(bytes(self.CONSOLE_SUCCESS_SHELL_TEXT))
+            telnet.read_until(bytes(self.CONSOLE_SUCCESS_SHELL_TEXT.encode('ascii')), timeout=timeout)
             print("login successfull") if debug else None
             sleep(1)
 
             print("setting terminal type to vt100") if debug else None
-            # telnet.write("vt100\n".encode('ascii'))
-            telnet.write(bytes(self.CONSOLE_TERMINAL_TYPE)+"\n".encode('ascii'))
+            telnet.write(bytes(self.CONSOLE_TERMINAL_TYPE, 'ascii') + b"\n")
 
-            # try logout
+            # try restart
             try:
                 print("Sending restart command")
-                # telnet.write("sys restart\n".encode('ascii'))
-                telnet.write(bytes(self.CONSOLE_RESTART_COMMAND) + "\n".encode('ascii'))
-
-                # telnet.read_until(b'System will reboot! Continue?[Y/N]:')
-                telnet.read_until(bytes(self.CONSOLE_RESTART_CONFIRMATION_TEXT))
-                # telnet.write(b"Y\n")
-                telnet.write(self.CONSOLE_RESTART_CONFIRMATION_COMMAND.encode('ascii') + "\n".encode('ascii'))
+                telnet.write(bytes(self.CONSOLE_RESTART_COMMAND, 'ascii') + b"\n")
+                print("Waiting confirmation ask from device")
+                telnet.read_until(bytes(self.CONSOLE_RESTART_CONFIRMATION_TEXT.encode('ascii')), timeout=timeout)
+                print("Sending confirmation response to device")
+                telnet.write(bytes(self.CONSOLE_RESTART_CONFIRMATION_COMMAND, 'ascii') + b"\n")
                 sleep(3)
 
                 while True:
