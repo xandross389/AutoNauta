@@ -1,55 +1,27 @@
+import json
 from time import sleep
 import time
 # from datetime import datetime
 from nautasdk.exceptions import NautaLoginException, NautaLogoutException, NautaException
-from utils import clear, is_time_between
+from utils import clear, is_time_between, ping
 from nautasdk import utils
-import os
+from router import Router
 
+from configuration_manager import ConfigurationManager, Configuration
 from nautasdk.nauta_api import NautaClient, NautaProtocol
 from nautasdk import utils
 
-# Default configuration items, custom it through config.json file
-USERNAME = 'cdn.espinf1@nauta.com.cu'
-PASSWORD = 'Lqqdysh/*20*/'
-# CHECK_CONNECTION_PAGE = 'http://192.168.1.188:8080/'
-CHECK_CONNECTION_PAGE = 'http://www.cubadebate.cu/'
-CONNECTION_BEGIN_TIME = '07:00'
-CONNECTION_END_TIME = '23:30'
-CONNECTION_CHECK_FRECUENCY = 12
-DISCONNECTION_BEGIN_TIME = '00:00'
-DISCONNECTION_END_TIME = '06:59'
-DISCONNECTION_CHECK_FRECUENCY = 12
+# internal constants
 RUNNING_TEXT = '*** Monitoreando conexión (Presione Ctrl + C para detener y cerrar sesión) ***'
+config_manager = ConfigurationManager()
+config = config_manager.get_config()
 
 
-def load_configuration(config_file='./config.json'):
-    if not os.path.isfile(config_file):
-        create_default_configuration_file()
-    else:
-        pass
-        # load configuration items
-        # Default configuration items, custom it through config.json file
-        # USERNAME = ''
-        # PASSWORD = ''
-        # CHECK_CONNECTION_PAGE = 'http://192.168.1.188:8080/'
-        # CONNECTION_BEGIN_TIME = '07:00'
-        # CONNECTION_END_TIME = '18:30'
-        # CONNECTION_CHECK_FRECUENCY = 10
-        # DISCONNECTION_BEGIN_TIME = '18:31'
-        # DISCONNECTION_END_TIME = '06:59'
-        # DISCONNECTION_CHECK_FRECUENCY = 10
-        # RUNNING_TEXT = '*** Monitoreando conexión (Presione Ctrl + C para detener y cerrar sesión) ***'
-
-
-def create_default_configuration_file():
-    if not os.path.isfile('./config.json'):
-        pass
+router = Router(ip_address=config.router_ip, username=config.username, password=config.password)
 
 
 def print_status_text():
     print(RUNNING_TEXT)
-    # print('most be connected')
     status = 'DESCONECTADO'
     if is_online():
         status = 'CONECTADO'
@@ -57,86 +29,59 @@ def print_status_text():
 
 
 def monitor_connection_status():
-    # clear()
-    # print_status_text()
+    while must_be_connected():
 
-    if most_be_connected():
-        print('most_be_connected()')
-        clear()
-        print_status_text()
-
-        while not is_online():
-            if not most_be_connected():
-                break
-            # sleep(CONNECTION_CHECK_FRECUENCY)
-            # clear()
-            # print_status_text()
-            sleep(CONNECTION_CHECK_FRECUENCY)
-
-            try:
+        try:
+            if not ping(config.check_ping_host):
                 connect()
-            except NautaLoginException as ex:
-                print(f'Error iniciando de sesion: ({ex})')
-            except NautaLogoutException as ex:
-                print(f'Error cerrando de sesion ({ex})')
-            except NautaException as ex:
-                print(f'Error de Nauta: ({ex})')
-            except Exception as ex:
-                print(f'Error de conexión. Asegurese de estar conectado a la red ({ex})')
-            # except KeyboardInterrupt:
-            #     pass
-            #     # print('most_be_connected()')
-            finally:
-                clear()
-                print_status_text()
-            # except KeyboardInterrupt:
-            #     pass
-            # finally:
-            #     pass
+        except NautaLoginException as ex:
+            print(f'Error iniciando sesion: ({ex})')
+        except NautaLogoutException as ex:
+            print(f'Error cerrando sesion ({ex})')
+        except NautaException as ex:
+            print(f'Error de Nauta: ({ex})')
+        except Exception as ex:
+            print(f'Error de conexión. Asegurese de estar conectado a la red ({ex})')
+        except KeyboardInterrupt:
+            pass
+        finally:
+            sleep(config.connection_check_frequency_in_secs)
 
-    if most_be_disconnected():
-        print('most_be_disconnected()')
-        clear()
-        print_status_text()
-
-        while is_online():
-            if not most_be_disconnected():
-                break
-
-            # clear()
-            # print_status_text()
-            sleep(DISCONNECTION_CHECK_FRECUENCY)
+    if not must_be_connected():
+        for i in range(config.clean_logout_retry_times):
+            print(f'Intentando desconectar ({i + 1} of {config.clean_logout_retry_times})')
 
             try:
-                disconnect()
+                if ping(config.check_ping_host):
+                    disconnect()
             except NautaLoginException as ex:
-                print(f'Error iniciando de sesion ({ex})')
+                print(f'Error iniciando sesion ({ex})')
             except NautaLogoutException as ex:
-                print(f'Error cerrando de sesion ({ex})')
+                print(f'Error cerrando sesion ({ex})')
             except NautaException as ex:
                 print(f'Error de Nauta ({ex})')
             except Exception as ex:
                 print(f'Error de conexión. Asegurese de estar conectado a la red ({ex})')
-                # pass
-            # except KeyboardInterrupt:
-            #     pass
-                # print('most_be_disconnected()')
-            # finally:
-            #     sleep(DISCONNECTION_CHECK_FRECUENCY)
-                # clear()
-            # except KeyboardInterrupt:
-            #     pass
             finally:
-                clear()
-                print_status_text()
+                sleep(config.disconnection_check_frequency_in_secs)
 
-    clear()
-    print_status_text()
-    print('=> Esperando planificación de conexión/desconexión')
+        if config.force_connection_close and ping(config.check_ping_host) and not must_be_connected():
+            print('Usted esta conectado y la conexion debe ser cerrada. El router será reiniciando!!!\n')
+
+            try:
+                if router.console_restart(debug=True, timeout=10):
+                    print('Router reiniciado satisfactoriamente')
+                else:
+                    print('Fallo reiniciando el router')
+            except Exception as ex:
+                print('Ha ocurrido un error intentando reiniciar el router')
+            # finally:
+            #     print_status_text()
 
 
 def connect():
-    client = NautaClient(user=USERNAME, password=PASSWORD, default_check_page=CHECK_CONNECTION_PAGE)
+    client = NautaClient(user=config.username, password=config.password,
+                         default_check_page=config.check_connection_page)
 
     print(
         "Conectando usuario: {}".format(
@@ -144,25 +89,18 @@ def connect():
         )
     )
 
-    # if args.batch:
-    #     client.login()
-    #     print("[Sesion iniciada]")
-    #     print("Tiempo restante: {}".format(utils.val_or_error(lambda: client.remaining_time)))
-    # else:
     with client.login():
         login_time = int(time.time())
         print("[Sesion iniciada]")
         print("Tiempo restante: {}".format(utils.val_or_error(lambda: client.remaining_time)))
-        print(
-            "Presione Ctrl+C para desconectarse"
-            # ", o ejecute 'nauta down' desde otro terminal".format(
-            #     prog_name
-            # )
-        )
-
+        print("Presione Ctrl+C para desconectarse")
+        
         try:
             while True:
                 if not client.is_logged_in:
+                    break
+                
+                if not must_be_connected():
                     break
 
                 elapsed = int(time.time()) - login_time
@@ -173,18 +111,6 @@ def connect():
                     ),
                     end=""
                 )
-
-                # if args.session_time:
-                #     if args.session_time < elapsed:
-                #         break
-                #
-                #     print(
-                #         " La sesion se cerrara en {}.".format(
-                #             utils.seconds2strtime(args.session_time - elapsed)
-                #         ),
-                #         end=""
-                #     )
-
                 time.sleep(2)
         except KeyboardInterrupt:
             pass
@@ -199,7 +125,8 @@ def connect():
 
 
 def disconnect():
-    client = NautaClient(user=USERNAME, password=PASSWORD, default_check_page=CHECK_CONNECTION_PAGE)
+    client = NautaClient(user=config.username, password=config.password,
+                         default_check_page=config.check_connection_page)
 
     if client.is_logged_in:
         client.load_last_session()
@@ -210,43 +137,36 @@ def disconnect():
 
 
 def is_online():
+    # return ping(CHECK_PING_HOST)
     online = False
     try:
-        online = NautaProtocol.is_connected(check_page=CHECK_CONNECTION_PAGE)
+        online = NautaProtocol.is_connected(check_page=config.check_connection_page)
     except ConnectionRefusedError as ex:
-        print('La conexión fue rechazada por el host remoto - ' + ex)
+        print('La conexión fue rechazada por el host remoto - ' + str(ex))
     except ConnectionResetError as ex:
-        print('La conexión fue reiniciada por el host remoto - ' + ex)
+        print('La conexión fue reiniciada por el host remoto - ' + str(ex))
     except ConnectionAbortedError as ex:
-        print('La conexión fue abortada por el host remoto - ' + ex)
+        print('La conexión fue abortada por el host remoto - ' + str(ex))
     except ConnectionError as ex:
-        print('Error de conexión. Asegurese de estar conectado a una red - ' + ex)
+        print('Error de conexión. Asegurese de estar conectado a una red - ' + str(ex))
     except Exception as ex:
-        print('Ha ocurrido un error intentando determinar el estado de la conexión - ' + ex)
+        print('Ha ocurrido un error intentando determinar el estado de la conexión - ' + str(ex))
     finally:
         return online
 
 
-def most_be_connected():
-    return is_time_between(CONNECTION_BEGIN_TIME, CONNECTION_END_TIME)
-
-
-def most_be_disconnected():
-    return is_time_between(DISCONNECTION_BEGIN_TIME, DISCONNECTION_END_TIME)
+def must_be_connected():
+    return is_time_between(config.connection_begin_time, config.connection_end_time)
 
 
 if __name__ == '__main__':
-    clear()
-    print_status_text()
     while True:
-        sleep(2)
+        clear()
+        print_status_text()
         try:
             monitor_connection_status()
         except KeyboardInterrupt:
-            # print('Presione nuevamente Crtl + C para cerrar sesión')
             pass
         finally:
-            print('main loop done')
-            # sleep(5)
-            # clear()
+            sleep(5)
 
