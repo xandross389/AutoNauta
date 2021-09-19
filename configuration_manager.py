@@ -45,8 +45,16 @@ class Configuration:
         return self._connection_check_frequency
 
     @property
+    def connection_check_frequency_in_secs(self):
+        return self.connection_check_frequency * 60
+
+    @property
     def disconnection_check_frequency(self):
         return self._disconnection_check_frequency
+
+    @property
+    def disconnection_check_frequency_in_secs(self):
+        return self.disconnection_check_frequency * 60
 
     @property
     def router_ip(self):
@@ -168,7 +176,6 @@ class ConfigurationManager:
                 try:
                     self._config.username = config_string['username']
                     self._config.password = config_string['password']
-                    self._config.password = config_string['password']
                     self._config.router_ip = config_string['router_ip']
                     self._config.router_username = config_string['router_username']
                     self._config.router_password = config_string['router_password']
@@ -180,9 +187,8 @@ class ConfigurationManager:
                     self._config.connection_check_frequency = config_string['connection_check_frequency']
                     self._config.disconnection_check_frequency = config_string['disconnection_check_frequency']
                     self._config.clean_logout_retry_times = config_string['clean_logout_retry_times']
-
-                except Exception as asign_error:
-                    print('Error asigning json field - ' + str(asign_error))
+                except Exception as assign_error:
+                    print('Error assigning json field - ' + str(assign_error))
         except Exception as file_err:
             print('Err loading json from file - ' + str(file_err))
         finally:
