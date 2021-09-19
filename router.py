@@ -64,7 +64,7 @@ class Router:
 
     def web_restart(self, debug=False):
         if self.model in ['TD-W8961N']:
-            self.web_driver.get('http:/' + self.ip_address + self.LOGIN_URL)
+            self.web_driver.get('http://' + self.ip_address + self.LOGIN_URL)
             sleep(3)
 
             # username
