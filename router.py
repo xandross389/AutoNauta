@@ -20,10 +20,10 @@ class Router:
     XPATH_RESTART_BUTTON_LOCATOR = '/html/body/div/table/tbody/tr/td[2]/table[3]/tbody/tr/td[7]/a'
     # Console ralated vars
     CONSOLE_USERNAME_TEXT = 'Username:'
-    CONSOLE_PASSWORD_TEXT = 'Password:'
-    CONSOLE_SUCCESS_SHELL_TEXT = '>'
+    CONSOLE_PASSWORD_TEXT = 'Password: '
+    CONSOLE_SUCCESS_SHELL_TEXT = '> '
     CONSOLE_TERMINAL_TYPE = 'vt100'
-    CONSOLE_RESTART_COMMAND = 'sys restart' #'reboot'
+    CONSOLE_RESTART_COMMAND = 'sys reboot' #'reboot'
     CONSOLE_RESTART_CONFIRMATION_TEXT = 'System will reboot! Continue?[Y/N]:'
     CONSOLE_RESTART_CONFIRMATION_COMMAND = 'Y'
     DEFAULT_TIMEOUT = 30
@@ -104,14 +104,14 @@ class Router:
             telnet = Telnet()
             telnet.open(self.ip_address, timeout=timeout)
 
-            print("waiting username ask") if debug else None
-            telnet.read_until(bytes(self.CONSOLE_USERNAME_TEXT.encode('ascii')), timeout=timeout)
-            print("sending username") if debug else None
-            telnet.write(bytes(self.username, 'ascii') + b"\n")
+            # print("waiting username ask") if debug else None
+            # telnet.read_until(bytes(self.CONSOLE_USERNAME_TEXT.encode('ascii')), timeout=timeout)
+            # print("sending username") if debug else None
+            # telnet.write(bytes(self.username, 'ascii') + b"\n")
 
             print("waiting password ask") if debug else None
-            telnet.read_until(bytes(self.CONSOLE_PASSWORD_TEXT.encode('ascii')), timeout=timeout)
-            print("sending password") if debug else None
+            telnet.read_until(bytes(self.CONSOLE_PASSWORD_TEXT.encode('ascii')), timeout=timeout)            
+            print(f"sending password - {self.password}") if debug else None
             telnet.write(bytes(self.password, 'ascii') + b"\n")
 
             print("waiting loggin success") if debug else None
@@ -126,17 +126,17 @@ class Router:
             try:
                 print("Sending restart command")
                 telnet.write(bytes(self.CONSOLE_RESTART_COMMAND, 'ascii') + b"\n")
-                print("Waiting confirmation ask from device")
-                telnet.read_until(bytes(self.CONSOLE_RESTART_CONFIRMATION_TEXT.encode('ascii')), timeout=timeout)
-                print("Sending confirmation response to device")
-                telnet.write(bytes(self.CONSOLE_RESTART_CONFIRMATION_COMMAND, 'ascii') + b"\n")
+                # print("Waiting confirmation ask from device")
+                # telnet.read_until(bytes(self.CONSOLE_RESTART_CONFIRMATION_TEXT.encode('ascii')), timeout=timeout)
+                # print("Sending confirmation response to device")
+                # telnet.write(bytes(self.CONSOLE_RESTART_CONFIRMATION_COMMAND, 'ascii') + b"\n")
                 sleep(3)
 
                 while True:
                     message = telnet.read_until(b'\n', timeout=0.2)
                     if message == b'':
                         break
-                    print(message)
+                    print(message) if debug else None
             except EOFError:
                 print("Connection closed") if debug else None
             finally:

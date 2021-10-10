@@ -30,12 +30,17 @@ import bs4
 import requests
 from requests import RequestException
 
+from os import system, name
+import platform
+import subprocess
+import os
+
 from nautasdk import appdata_path
 from nautasdk.exceptions import NautaLoginException, NautaLogoutException, NautaException, NautaPreLoginException
 
 MAX_DISCONNECT_ATTEMPTS = 10
 
-CHECK_PAGE = "https://www.google.com.cu/"
+CHECK_PAGE = "https://www.google.com/"
 LOGIN_DOMAIN = b"secure.etecsa.net"
 _re_login_fail_reason = re.compile('alert\("(?P<reason>[^"]*?)"\)')
 
@@ -109,8 +114,25 @@ class NautaProtocol(object):
 
     @classmethod
     def is_connected(cls, check_page=CHECK_PAGE):
-        r = requests.get(check_page)
-        return LOGIN_DOMAIN not in r.content
+        # r = requests.get(check_page)
+        # return LOGIN_DOMAIN not in r.content
+        return NautaProtocol.ping()
+
+    @classmethod
+    def ping(cls, host='8.8.8.8'):
+        parameter = '-n' if platform.system().lower() == 'windows' else '-c'
+        with open(os.devnull, 'w') as DEVNULL:
+            try:
+                subprocess.check_call(
+                    ['ping', parameter, '2', host],
+                    stdout=DEVNULL,  # suppress output
+                    stderr=DEVNULL
+                )
+                is_up = True
+            except subprocess.CalledProcessError:
+                is_up = False
+
+        return is_up
 
     @classmethod
     def create_session(cls, default_check_page=CHECK_PAGE):
