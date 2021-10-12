@@ -1,15 +1,19 @@
 {
     "check_connection_page": "http://www.google.com.cu/",
     "check_ping_host": "8.8.8.8",
-    "clean_logout_retry_times": 2,
-    "connection_begin_time": "11:00",
-    "connection_check_frequency": 1,
-    "connection_end_time": "17:00",
-    "disconnection_check_frequency": 1,
-    "force_connection_close": true,
-    "username": "wendy8410@nauta.com.cu",
-    "password": "Happy123!",
-    "router_ip": "192.168.0.1",
-    "router_password": "Momi@1234",
+    "clean_logout_retry_times": 5,
+    "connection_begin_time": "07:30",
+    "connection_check_frequency": 30,
+    "connection_end_time": "17:30",
+    "credentials": [
+        {
+            "password": "user1@nauta.com.cu",
+            "username": "user1pass"
+        }
+    ],
+    "disconnection_check_frequency": 60,
+    "force_connection_close": false,
+    "router_ip": "192.168.1.1",
+    "router_password": "admin",
     "router_username": "admin"
 }

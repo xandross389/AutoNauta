@@ -14,7 +14,6 @@ RUNNING_TEXT = '*** Monitoreando conexión (Presione Ctrl + C para detener y cer
 config_manager = ConfigurationManager()
 config = config_manager.get_config()
 
-
 router = Router(ip_address=config.router_ip, username=config.router_username, password=config.router_password)
 
 
@@ -82,7 +81,7 @@ def monitor_connection_status():
     
 
 def connect():
-    client = NautaClient(user=config.username, password=config.password,
+    client = NautaClient(user=config.credentials[0]['username'], password=config.credentials[0]['password'],
                          default_check_page=config.check_connection_page)
 
     print(
@@ -127,7 +126,7 @@ def connect():
 
 
 def disconnect():
-    client = NautaClient(user=config.username, password=config.password,
+    client = NautaClient(user=config.credentials[0]['username'], password=config.credentials[0]['password'],
                          default_check_page=config.check_connection_page)
 
     if client.is_logged_in:

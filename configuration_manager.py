@@ -3,15 +3,22 @@ import os
 
 DEFAULT_CONFIG_FILENAME = './config.json'
 
+class ConfigurationException(Exception):
+    pass
+
+class CredentialsDictException(ConfigurationException):
+    pass
+
 
 class Configuration:
-    def __init__(self, username='', password='', check_conn_page='http://www.google.com.cu/',
+    def __init__(self, check_conn_page='http://www.google.com.cu/',
                  conn_begin_time='07:30', conn_end_time='17:30', conn_check_freq=30,
                  disconn_check_freq=60, clean_logout_retry_times=5,
-                 router_ip='', router_username='', router_password='', check_ping_host='8.8.8.8',
+                 router_ip='192.168.1.1', router_username='admin', router_password='admin', check_ping_host='8.8.8.8',
                  force_connection_close=False):
-        self._username = username
-        self._password = password
+        self._credentials = list()
+        # self._username = username
+        # self._password = password
         self._router_ip = router_ip
         self._router_username = router_username
         self._router_password = router_password
@@ -24,13 +31,41 @@ class Configuration:
         self._disconnection_check_frequency = disconn_check_freq  # frequency in minutes
         self._clean_logout_retry_times = clean_logout_retry_times
 
-    @property
-    def username(self):
-        return self._username
+    def update_credentials(self, credentials):
+        """
+        Updates password if finds the username or adds new credentials to dictionary list if not exists
+        :param credentials: credentials dictionary with username and password like {'username': "user1@nauta.com.cu", 'password': "userpass"}
+        :return: updated credentials dictionary list
+        """
+        if len(credentials) == 2 and 'username' in credentials.keys() and 'password' in credentials.keys():
+            for i in range(len(self._credentials)):
+                if self._credentials[i]['username'] == credentials['username']:
+                    self._credentials[i]['password'] = credentials['password']
+                    return self._credentials
+
+            self._credentials.append(credentials)
+            return self._credentials
+        else:
+            raise CredentialsDictException("Credentials dict must contains username and password keys only")
+
+    def delete_credentials(self, credentials):
+        """
+        Deletes credentials from dictionary list (match username and password is needed)
+        :param credentials: credentials dictionary with username and password
+        like {'username': "user1@nauta.com.cu", 'password': "user1pass"} to delete
+        :return: updated credentials dictionary list
+        """
+        if len(credentials) == 2 and 'username' in credentials.keys() and 'password' in credentials.keys():
+            for i in range(len(self._credentials)):
+                if self._credentials[i]['username'] == credentials['username'] and self._credentials[i]['password'] == credentials['password']:
+                    del self._credentials[i]
+            return self._credentials
+        else:
+            raise CredentialsDictException("Credentials dict must contains username and password keys only")
 
     @property
-    def password(self):
-        return self._password
+    def credentials(self):
+        return self._credentials
 
     @property
     def connection_begin_time(self):
@@ -84,13 +119,9 @@ class Configuration:
     def clean_logout_retry_times(self):
         return self._clean_logout_retry_times
 
-    @username.setter
-    def username(self, value):
-        self._username = value
-
-    @password.setter
-    def password(self, value):
-        self._password = value
+    @credentials.setter
+    def credentials(self, credentials):
+        self._credentials = credentials
 
     @router_ip.setter
     def router_ip(self, value):
@@ -147,8 +178,11 @@ class ConfigurationManager:
 
     def create_default_configuration_file(self):
         config = {
-            'username': self._config.username,
-            'password': self._config.password,
+            'credentials': [
+                {'username': "", 'password': ""},
+            ],
+            # 'username': self._config.username,
+            # 'password': self._config.password,
             'router_ip': self._config.router_ip,
             'router_username': self._config.router_username,
             'router_password': self._config.router_password,
@@ -174,8 +208,9 @@ class ConfigurationManager:
                 config_string = json.load(read_file)
 
                 try:
-                    self._config.username = config_string['username']
-                    self._config.password = config_string['password']
+                    self._config.credentials = config_string['credentials']
+                    # self._config.username = config_string['username']
+                    # self._config.password = config_string['password']
                     self._config.router_ip = config_string['router_ip']
                     self._config.router_username = config_string['router_username']
                     self._config.router_password = config_string['router_password']
