@@ -1,7 +1,9 @@
-from utils import ping
+# from utils import ping
 from time import sleep
 from telnetlib import Telnet
 from selenium import webdriver
+
+from nautasdk.nauta_api import NautaProtocol
 
 
 class Router:
@@ -60,7 +62,7 @@ class Router:
         return driver
 
     def ping(self):
-        return ping(self.ip_address)
+        return NautaProtocol.ping(host=self.ip_address)
 
     def web_restart(self, debug=False):
         if self.model in ['TD-W8961N']:

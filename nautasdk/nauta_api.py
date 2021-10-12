@@ -41,6 +41,7 @@ from nautasdk.exceptions import NautaLoginException, NautaLogoutException, Nauta
 MAX_DISCONNECT_ATTEMPTS = 10
 
 CHECK_PAGE = "https://www.google.com/"
+PING_HOST = '8.8.8.8'
 LOGIN_DOMAIN = b"secure.etecsa.net"
 _re_login_fail_reason = re.compile('alert\("(?P<reason>[^"]*?)"\)')
 
@@ -113,13 +114,11 @@ class NautaProtocol(object):
         }
 
     @classmethod
-    def is_connected(cls, check_page=CHECK_PAGE):
-        # r = requests.get(check_page)
-        # return LOGIN_DOMAIN not in r.content
-        return NautaProtocol.ping()
+    def is_connected(cls, ping_host):
+        return NautaProtocol.ping(ping_host)
 
     @classmethod
-    def ping(cls, host='8.8.8.8'):
+    def ping(cls, host=PING_HOST):
         parameter = '-n' if platform.system().lower() == 'windows' else '-c'
         with open(os.devnull, 'w') as DEVNULL:
             try:
@@ -136,7 +135,7 @@ class NautaProtocol(object):
 
     @classmethod
     def create_session(cls, default_check_page=CHECK_PAGE):
-        if cls.is_connected(check_page=default_check_page):
+        if cls.is_connected(ping_host=PING_HOST):
             if SessionObject.is_logged_in():
                 raise NautaPreLoginException("Hay una session abierta")
             else:

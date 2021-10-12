@@ -1,10 +1,8 @@
 import json
 from time import sleep
 import time
-# from datetime import datetime
 from nautasdk.exceptions import NautaLoginException, NautaLogoutException, NautaException
-from utils import clear, is_time_between, ping
-from nautasdk import utils
+from nautasdk.utils import clear, is_time_between
 from router import Router
 
 from configuration_manager import ConfigurationManager, Configuration
@@ -33,7 +31,7 @@ def monitor_connection_status():
     if must_be_connected():
 
         try:
-            if not ping(config.check_ping_host):
+            if not NautaProtocol.ping(host=config.check_ping_host):
                 connect()
             else:
                 sleep(config.connection_check_frequency_in_secs)
@@ -48,7 +46,7 @@ def monitor_connection_status():
         except KeyboardInterrupt:
             pass
     if not must_be_connected(): 
-        if ping(config.check_ping_host):
+        if NautaProtocol.ping(host=config.check_ping_host):
             for i in range(config.clean_logout_retry_times):
                 print(f'Intentando desconectar ({i + 1} of {config.clean_logout_retry_times})')
 
@@ -63,10 +61,10 @@ def monitor_connection_status():
                     print(f'Error de Nauta ({ex})')
                 except Exception as ex:
                     print(f'Error de conexión. Asegurese de estar conectado a la red ({ex})')
-                finally:
-                    sleep(5)
 
-            if config.force_connection_close and ping(config.check_ping_host) and not must_be_connected():
+                sleep(10)
+
+            if config.force_connection_close and NautaProtocol.ping(host=config.check_ping_host) and not must_be_connected():
                 print('Usted esta conectado y la conexion debe ser cerrada. El router será reiniciando!!!\n')
 
                 try:
@@ -82,7 +80,6 @@ def monitor_connection_status():
         else:
             sleep(config.disconnection_check_frequency_in_secs)       
     
-
 
 def connect():
     client = NautaClient(user=config.username, password=config.password,
@@ -102,7 +99,7 @@ def connect():
         
         try:
             while True:
-                if not client.is_logged_in or not ping(config.check_ping_host):
+                if not client.is_logged_in or not NautaProtocol.ping(host=config.check_ping_host):
                     break
                 
                 if not must_be_connected():
@@ -139,14 +136,13 @@ def disconnect():
     #     print("Sesion cerrada con exito")
     # else:
     #     print("No hay ninguna sesion activa")
-    return not ping(config.check_ping_host)
+    return not NautaProtocol.ping(host=config.check_ping_host)
 
 
 def is_online():
-    
     online = False
     try:
-        online = NautaProtocol.is_connected(check_page=config.check_connection_page)
+        online = NautaProtocol.is_connected(ping_host=config.check_ping_host)
     except ConnectionRefusedError as ex:
         print('La conexión fue rechazada por el host remoto - ' + str(ex))
     except ConnectionResetError as ex:
