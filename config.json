@@ -1,7 +1,7 @@
 {
     "check_connection_page": "http://www.google.com.cu/",
     "check_ping_host": "8.8.8.8",
-    "clean_logout_retry_times": 5,
+    "disconnection_retry_times": 5,
     "connection_begin_time": "07:30",
     "connection_check_frequency": 30,
     "connection_end_time": "17:30",

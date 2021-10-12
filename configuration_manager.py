@@ -3,8 +3,10 @@ import os
 
 DEFAULT_CONFIG_FILENAME = './config.json'
 
+
 class ConfigurationException(Exception):
     pass
+
 
 class CredentialsDictException(ConfigurationException):
     pass
@@ -13,12 +15,10 @@ class CredentialsDictException(ConfigurationException):
 class Configuration:
     def __init__(self, check_conn_page='http://www.google.com.cu/',
                  conn_begin_time='07:30', conn_end_time='17:30', conn_check_freq=30,
-                 disconn_check_freq=60, clean_logout_retry_times=5,
+                 disconn_check_freq=60, disconnection_retry_times=5,
                  router_ip='192.168.1.1', router_username='admin', router_password='admin', check_ping_host='8.8.8.8',
                  force_connection_close=False):
         self._credentials = list()
-        # self._username = username
-        # self._password = password
         self._router_ip = router_ip
         self._router_username = router_username
         self._router_password = router_password
@@ -29,7 +29,7 @@ class Configuration:
         self._force_connection_close = force_connection_close  # restarts router if True
         self._connection_check_frequency = conn_check_freq  # frequency in minutes
         self._disconnection_check_frequency = disconn_check_freq  # frequency in minutes
-        self._clean_logout_retry_times = clean_logout_retry_times
+        self._disconnection_retry_times = disconnection_retry_times
 
     def update_credentials(self, credentials):
         """
@@ -116,8 +116,8 @@ class Configuration:
         return self._force_connection_close
 
     @property
-    def clean_logout_retry_times(self):
-        return self._clean_logout_retry_times
+    def disconnection_retry_times(self):
+        return self._disconnection_retry_times
 
     @credentials.setter
     def credentials(self, credentials):
@@ -151,9 +151,9 @@ class Configuration:
     def force_connection_close(self, value):
         self._force_connection_close = value
 
-    @clean_logout_retry_times.setter
-    def clean_logout_retry_times(self, value):
-        self._clean_logout_retry_times = value
+    @disconnection_retry_times.setter
+    def disconnection_retry_times(self, value):
+        self._disconnection_retry_times = value
 
     @disconnection_check_frequency.setter
     def disconnection_check_frequency(self, value):
@@ -181,8 +181,6 @@ class ConfigurationManager:
             'credentials': [
                 {'username': "", 'password': ""},
             ],
-            # 'username': self._config.username,
-            # 'password': self._config.password,
             'router_ip': self._config.router_ip,
             'router_username': self._config.router_username,
             'router_password': self._config.router_password,
@@ -193,7 +191,7 @@ class ConfigurationManager:
             'force_connection_close': self._config.force_connection_close,
             'connection_check_frequency': self._config.connection_check_frequency,
             'disconnection_check_frequency': self._config.disconnection_check_frequency,
-            'clean_logout_retry_times': self._config.clean_logout_retry_times
+            'disconnection_retry_times': self._config.disconnection_retry_times
         }
 
         with open(self._config_file, 'w') as outfile:
@@ -209,8 +207,6 @@ class ConfigurationManager:
 
                 try:
                     self._config.credentials = config_string['credentials']
-                    # self._config.username = config_string['username']
-                    # self._config.password = config_string['password']
                     self._config.router_ip = config_string['router_ip']
                     self._config.router_username = config_string['router_username']
                     self._config.router_password = config_string['router_password']
@@ -221,7 +217,7 @@ class ConfigurationManager:
                     self._config.force_connection_close = config_string['force_connection_close']
                     self._config.connection_check_frequency = config_string['connection_check_frequency']
                     self._config.disconnection_check_frequency = config_string['disconnection_check_frequency']
-                    self._config.clean_logout_retry_times = config_string['clean_logout_retry_times']
+                    self._config.disconnection_retry_times = config_string['disconnection_retry_times']
                 except Exception as assign_error:
                     print('Error assigning json field - ' + str(assign_error))
         except Exception as file_err:

@@ -46,8 +46,8 @@ def monitor_connection_status():
             pass
     if not must_be_connected(): 
         if NautaProtocol.ping(host=config.check_ping_host):
-            for i in range(config.clean_logout_retry_times):
-                print(f'Intentando desconectar ({i + 1} of {config.clean_logout_retry_times})')
+            for i in range(config.disconnection_retry_times):
+                print(f'Intentando desconectar ({i + 1} of {config.disconnection_retry_times})')
 
                 try:
                     if disconnect():
