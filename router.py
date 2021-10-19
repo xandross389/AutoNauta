@@ -144,6 +144,14 @@ class Router:
             finally:
                 telnet.close()
 
-        sleep(5)
+        max_retry_ping_times = 30 # ping retries before assume router restart fails
+        retries = 0
+
+        while self.ping(self.ip_address):
+            sleep(1)
+            retries += 1
+            if retries > max_retry_ping_times:
+                break
+
         return not self.ping()
 
