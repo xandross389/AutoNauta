@@ -38,7 +38,7 @@ import os
 from nautasdk import appdata_path
 from nautasdk.exceptions import NautaLoginException, NautaLogoutException, NautaException, NautaPreLoginException
 
-MAX_DISCONNECT_ATTEMPTS = 10
+MAX_DISCONNECT_ATTEMPTS = 0
 
 CHECK_PAGE = "https://www.google.com/"
 PING_HOST = '8.8.8.8'
@@ -350,8 +350,8 @@ class NautaClient(object):
                 self.session.dispose()
                 self.session = None
 
-    def logout(self):
-        for i in range(0, MAX_DISCONNECT_ATTEMPTS):
+    def logout(self, max_disconnect_attempts=MAX_DISCONNECT_ATTEMPTS):
+        for i in range(0, max_disconnect_attempts):
             try:
                 NautaProtocol.logout(
                     session=self.session,

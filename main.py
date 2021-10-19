@@ -26,7 +26,7 @@ def print_status_text():
 
 
 def monitor_connection_status():
-    # while must_be_connected():
+
     if must_be_connected():
 
         try:
@@ -36,24 +36,23 @@ def monitor_connection_status():
                 sleep(config.connection_check_frequency_in_secs)
         except NautaLoginException as ex:
             print(f'Error iniciando sesion: ({ex})')
-        except NautaLogoutException as ex:
-            print(f'Error cerrando sesion ({ex})')
         except NautaException as ex:
             print(f'Error de Nauta: ({ex})')
         except Exception as ex:
             print(f'Error de conexión. Asegurese de estar conectado a la red ({ex})')
         except KeyboardInterrupt:
             pass
+
     if not must_be_connected(): 
-        if NautaProtocol.ping(host=config.check_ping_host):
+        connected = NautaProtocol.ping(host=config.check_ping_host)
+
+        if connected:
             for i in range(config.disconnection_retry_times):
                 print(f'Intentando desconectar ({i + 1} of {config.disconnection_retry_times})')
 
                 try:
                     if disconnect():
-                        break                
-                except NautaLoginException as ex:
-                    print(f'Error iniciando sesion ({ex})')
+                        connected = NautaProtocol.ping(host=config.check_ping_host)
                 except NautaLogoutException as ex:
                     print(f'Error cerrando sesion ({ex})')
                 except NautaException as ex:
@@ -63,7 +62,7 @@ def monitor_connection_status():
 
                 sleep(10)
 
-            if config.force_connection_close and NautaProtocol.ping(host=config.check_ping_host) and not must_be_connected():
+            if connected and not must_be_connected() and config.force_connection_close:
                 print('Usted esta conectado y la conexion debe ser cerrada. El router será reiniciando!!!\n')
 
                 try:
@@ -72,10 +71,9 @@ def monitor_connection_status():
                     else:
                         print('Fallo reiniciando el router')
                 except Exception as ex:
-                    print('Ha ocurrido un error intentando reiniciar el router')
+                    print(f"Ha ocurrido un error intentando reiniciar el router ({ex})")
                 # finally:
                 #     print_status_text()
-        
         else:
             sleep(config.disconnection_check_frequency_in_secs)       
     
@@ -131,10 +129,11 @@ def disconnect():
 
     if client.is_logged_in:
         client.load_last_session()
-        client.logout()
+        client.logout(max_disconnect_attempts=config.disconnection_retry_times)
     #     print("Sesion cerrada con exito")
     # else:
     #     print("No hay ninguna sesion activa")
+    sleep(1)
     return not NautaProtocol.ping(host=config.check_ping_host)
 
 
