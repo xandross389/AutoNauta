@@ -38,7 +38,7 @@ import os
 from nautasdk import appdata_path
 from nautasdk.exceptions import NautaLoginException, NautaLogoutException, NautaException, NautaPreLoginException
 
-MAX_DISCONNECT_ATTEMPTS = 0
+MAX_DISCONNECT_ATTEMPTS = 3
 
 CHECK_PAGE = "https://www.google.com/"
 PING_HOST = '8.8.8.8'
