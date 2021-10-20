@@ -1,7 +1,7 @@
 import json
 from time import sleep
 import time
-from nautasdk.exceptions import NautaLoginException, NautaLogoutException, NautaException
+from nautasdk.exceptions import NautaLoginException, NautaLogoutException, NautaException, NautaPreLoginException
 from nautasdk.utils import clear, is_time_between
 from router import Router
 
@@ -14,7 +14,11 @@ RUNNING_TEXT = '*** Monitoreando conexión (Presione Ctrl + C para detener y cer
 config_manager = ConfigurationManager()
 config = config_manager.get_config()
 
+# global router object to manage router
 router = Router(ip_address=config.router_ip, username=config.router_username, password=config.router_password)
+# global nauta client object to manage sessions
+nauta_client = NautaClient(user=config.credentials[0]['username'], password=config.credentials[0]['password'],
+                           default_check_page=config.check_connection_page)
 
 
 def print_status_text():
@@ -26,16 +30,17 @@ def print_status_text():
 
 
 def monitor_connection_status():
-
     if must_be_connected():
 
         try:
             if not NautaProtocol.ping(host=config.check_ping_host):
-                connect()
+                connect(client=nauta_client)
             else:
                 sleep(config.connection_check_frequency_in_secs)
+        except NautaPreLoginException as ex:
+            print(f'Error antes de iniciar la sesión: ({ex})')
         except NautaLoginException as ex:
-            print(f'Error iniciando sesion: ({ex})')
+            print(f'Error iniciando sesión: ({ex})')
         except NautaException as ex:
             print(f'Error de Nauta: ({ex})')
         except Exception as ex:
@@ -43,7 +48,7 @@ def monitor_connection_status():
         except KeyboardInterrupt:
             pass
 
-    if not must_be_connected(): 
+    if not must_be_connected():
         connected = NautaProtocol.ping(host=config.check_ping_host)
 
         if connected:
@@ -51,10 +56,10 @@ def monitor_connection_status():
                 print(f'Intentando desconectar ({i + 1} of {config.disconnection_retry_times})')
 
                 try:
-                    if disconnect():
+                    if disconnect(client=nauta_client):
                         connected = NautaProtocol.ping(host=config.check_ping_host)
                 except NautaLogoutException as ex:
-                    print(f'Error cerrando sesion ({ex})')
+                    print(f'Error cerrando sesión ({ex})')
                 except NautaException as ex:
                     print(f'Error de Nauta ({ex})')
                 except Exception as ex:
@@ -75,66 +80,69 @@ def monitor_connection_status():
                 # finally:
                 #     print_status_text()
         else:
-            sleep(config.disconnection_check_frequency_in_secs)       
-    
+            sleep(config.disconnection_check_frequency_in_secs)
 
-def connect():
-    client = NautaClient(user=config.credentials[0]['username'], password=config.credentials[0]['password'],
-                         default_check_page=config.check_connection_page)
 
-    print(
-        "Conectando usuario: {}".format(
-            client.user,
+def connect(client=None):
+
+    if client:
+        print(
+            "Conectando usuario: {}".format(
+                client.user,
+            )
         )
-    )
 
-    with client.login():
-        login_time = int(time.time())
-        print("[Sesion iniciada]")
-        print("Tiempo restante: {}".format(utils.val_or_error(lambda: client.remaining_time)))
-        print("Presione Ctrl+C para desconectarse")
-        
-        try:
-            while True:
-                if not client.is_logged_in or not NautaProtocol.ping(host=config.check_ping_host):
-                    break
-                
-                if not must_be_connected():
-                    break
-
-                elapsed = int(time.time()) - login_time
-
-                print(
-                    "\rTiempo de conexion: {}.".format(
-                        utils.seconds2strtime(elapsed)
-                    ),
-                    end=""
-                )
-                time.sleep(2)
-        except KeyboardInterrupt:
-            pass
-        finally:
-            print("\n\nCerrando sesion ...")
+        with client.login():
+            login_time = int(time.time())
+            print("[sesión iniciada]")
             print("Tiempo restante: {}".format(utils.val_or_error(lambda: client.remaining_time)))
+            print("Presione Ctrl+C para desconectarse")
 
-    print("Sesion cerrada con exito.")
-    print("Credito: {}".format(
-        utils.val_or_error(lambda: client.user_credit)
-    ))
+            try:
+                while True:
+                    if not client.is_logged_in or not NautaProtocol.ping(host=config.check_ping_host):
+                        break
+
+                    if not must_be_connected():
+                        break
+
+                    elapsed = int(time.time()) - login_time
+
+                    print(
+                        "\rTiempo de conexion: {}.".format(
+                            utils.seconds2strtime(elapsed)
+                        ),
+                        end=""
+                    )
+                    time.sleep(2)
+            except KeyboardInterrupt:
+                pass
+            finally:
+                print("\n\nCerrando sesión ...")
+                print("Tiempo restante: {}".format(utils.val_or_error(lambda: client.remaining_time)))
+
+        print("sesión cerrada con exito.")
+        print("Credito: {}".format(
+            utils.val_or_error(lambda: client.user_credit)
+        ))
+    else:
+        raise NautaPreLoginException("No se especificó ningón usuario para conectar")
 
 
-def disconnect():
-    client = NautaClient(user=config.credentials[0]['username'], password=config.credentials[0]['password'],
-                         default_check_page=config.check_connection_page)
-
-    if client.is_logged_in:
-        client.load_last_session()
-        client.logout(max_disconnect_attempts=config.disconnection_retry_times)
-    #     print("Sesion cerrada con exito")
-    # else:
-    #     print("No hay ninguna sesion activa")
-    sleep(1)
-    return not NautaProtocol.ping(host=config.check_ping_host)
+def disconnect(client=None):
+    # client = NautaClient(user=config.credentials[0]['username'], password=config.credentials[0]['password'],
+    #                      default_check_page=config.check_connection_page)
+    if client:
+        if client.is_logged_in:
+            client.load_last_session()
+            client.logout(max_disconnect_attempts=config.disconnection_retry_times)
+        #     print("sesión cerrada con exito")
+        # else:
+        #     print("No hay ninguna sesión activa")
+        sleep(1)
+        return not NautaProtocol.ping(host=config.check_ping_host)
+    else:
+        raise NautaLogoutException("No se especificó ningún usuario para desconectar")
 
 
 def is_online():
@@ -159,6 +167,20 @@ def must_be_connected():
     return is_time_between(config.connection_begin_time, config.connection_end_time)
 
 
+def enough_user_remaining_time(client=None, threshold=1):
+    """
+    :param client: Nauta client object, default is None
+    :param threshold: Threshold for remaining time in seconds to assume that is enough left time or not, default is 1
+    :returns True or False if user have enough time balance or not
+    """
+    enough = False
+    if client:
+        if utils.strtime2seconds(client.remaining_time) >= threshold:
+            enough = True
+
+    return enough
+
+
 if __name__ == '__main__':
     while True:
         clear()
@@ -169,4 +191,3 @@ if __name__ == '__main__':
             pass
         finally:
             sleep(5)
-
