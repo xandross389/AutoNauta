@@ -23,9 +23,9 @@ nauta_client = NautaClient(user=config.credentials[0]['username'], password=conf
 
 def print_status_text():
     print(RUNNING_TEXT)
-    status = 'DESCONECTADO'
+    status =     'DESCONECTADO |---X---|'
     if is_online():
-        status = 'CONECTADO'
+        status = 'CONECTADO |<---->|'
     print(f'Usted esta {status}')
 
 
@@ -58,6 +58,7 @@ def monitor_connection_status():
                 try:
                     if disconnect(client=nauta_client):
                         connected = NautaProtocol.ping(host=config.check_ping_host)
+                        break
                 except NautaLogoutException as ex:
                     print(f'Error cerrando sesión ({ex})')
                 except NautaException as ex:
@@ -80,6 +81,8 @@ def monitor_connection_status():
                 # finally:
                 #     print_status_text()
         else:
+            clear()
+            print_status_text()
             sleep(config.disconnection_check_frequency_in_secs)
 
 
@@ -93,8 +96,12 @@ def connect(client=None):
         )
 
         with client.login():
+            clear()
+            print_status_text()
+
             login_time = int(time.time())
             print("[sesión iniciada]")
+            print(f"Usuario: {client.user}")
             print("Tiempo restante: {}".format(utils.val_or_error(lambda: client.remaining_time)))
             print("Presione Ctrl+C para desconectarse")
 
@@ -125,6 +132,9 @@ def connect(client=None):
         print("Credito: {}".format(
             utils.val_or_error(lambda: client.user_credit)
         ))
+        sleep(5)
+        clear()
+        print_status_text()
     else:
         raise NautaPreLoginException("No se especificó ningón usuario para conectar")
 
