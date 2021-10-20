@@ -144,6 +144,14 @@ class Router:
             finally:
                 telnet.close()
 
-        sleep(5)
+        max_retry_ping_times = 30  # ping retries before assume router restart fails
+        retries = 0
+        while self.ping():
+            retries += 1
+            print(f"Checking if router is up after restart, trie {retries} of {max_retry_ping_times}...")
+            sleep(1)
+            if retries > max_retry_ping_times:
+                break
+
         return not self.ping()
 
