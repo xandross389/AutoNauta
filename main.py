@@ -23,7 +23,7 @@ nauta_client = NautaClient(user=config.credentials[0]['username'], password=conf
 
 def print_status_text():
     print(RUNNING_TEXT)
-    status =     'DESCONECTADO |---X---|'
+    status = 'DESCONECTADO |---X---|'
     if is_online():
         status = 'CONECTADO |<---->|'
     print(f'Usted esta {status}')
