@@ -1,0 +1,362 @@
+#:kivy 2.0.0
+<TextInput>:
+    multiline: False
+
+<MainWindow>:
+    # Header panel
+    ti_admin_user: ti_admin_user
+    ti_admin_pass: ti_admin_pass
+    tgl_btn_active: tgl_btn_active
+    # Status tab
+    lbl_conn_status: lbl_conn_status
+    lbl_connected_user: lbl_connected_user
+    lbl_time_connected: lbl_time_connected
+    lbl_time_remaining: lbl_time_remaining
+    ti_status_console: ti_status_console
+    # Configuration tab
+    ti_nauta_user_1: ti_nauta_user_1
+    ti_nauta_user_2: ti_nauta_user_2
+    ti_nauta_user_3: ti_nauta_user_3
+    ti_nauta_pass_1: ti_nauta_pass_1
+    ti_nauta_pass_2: ti_nauta_pass_2
+    ti_nauta_pass_3: ti_nauta_pass_3
+    ti_start_time: ti_start_time
+    ti_end_time: ti_end_time
+    ti_check_online_frec: ti_check_online_frec
+    ti_check_offline_frec: ti_check_offline_frec
+    ti_disconn_retry_times: ti_disconn_retry_times
+    ti_check_ping_host: ti_check_ping_host
+    ti_router_pass: ti_router_pass
+    ti_router_ip: ti_router_ip
+    ti_router_user: ti_router_user
+    sw_auto_conn: sw_auto_conn
+    sw_force_disconnect: sw_force_disconnect
+    sw_auto_disconn: sw_auto_disconn
+
+
+    FloatLayout:
+
+        BoxLayout:
+            orientation: "vertical"
+            padding: 10
+            spacing: 10
+
+            canvas:
+                Rectangle:
+                    source: "assets/wallpaper.jpg"
+                    size: self.size
+                    pos: self.pos
+
+            # Header auth layout
+            GridLayout:
+                cols:6
+                size_hint: 1, .10
+                spacing: 10
+                padding: 10
+
+                Label:
+                    text: "Username: "
+                    size_hint: .1, 1
+
+                TextInput:
+                    id: ti_admin_user
+                    text: "admin"
+                    size_hint: .2, 1
+
+                Label:
+                    text: "Password: "
+                    size_hint: .1, 1
+
+                TextInput:
+                    id: ti_admin_pass
+                    password: True
+                    text: "admin"
+                    size_hint: .2, 1
+
+                Button:
+                    text: "Authenticate"
+                    size_hint: .15, 1
+                    on_press: root.on_press_authenticate_button()
+
+                ToggleButton:
+                    id: tgl_btn_active
+                    text: "ON" if tgl_btn_active.state == "down" else "OFF"
+                    size_hint: .05, 1
+                    on_press: root.on_press_active_toggle_button()
+
+            # TabLayout
+            TabbedPanel:
+                id: tabbed_panel
+                do_default_tab: False
+
+                # Status TAB
+                TabbedPanelItem:
+                    text: "Status"
+
+                    BoxLayout:
+                        orientation: "vertical"
+
+                        canvas:
+                            Rectangle:
+                                source: "assets/wallpaper.jpg"
+                                size: self.size
+                                pos: self.pos
+
+                        GridLayout:
+                            cols: 4
+                            size_hint: 1, .20
+
+                            Label:
+                                text: "Status: "
+
+                            Label:
+                                id: lbl_conn_status
+                                text: "ONLINE"
+                                color: "00ff00" if lbl_conn_status.text == "ONLINE" else "ff0000"
+
+                            Label:
+                                text: "Time connected: "
+
+                            Label:
+                                id: lbl_time_connected
+                                text: "00:00:00"
+
+                            Label:
+                                text: "Connected user: "
+
+                            Label:
+                                id: lbl_connected_user
+                                text: "wendy8410@nauta.com.cu"
+
+                            Label:
+                                text: "Time remaining: "
+
+                            Label:
+                                id: lbl_time_remaining
+                                text: "00:00:00"
+
+
+                        TextInput:
+                            id: ti_status_console
+                            multiline: True
+                            readonly: True
+                            text: "Monitoring connection (press Ctrl + c to exit)..."
+
+                # Configuration TAB
+                TabbedPanelItem:
+                    text: "Configuration"
+                    GridLayout:
+                        cols: 4
+                        #size_hint: 1, .95
+
+                        canvas:
+                            Rectangle:
+                                source: "assets/wallpaper.jpg"
+                                size: self.size
+                                pos: self.pos
+
+                        #GridLayout:
+                        #    id: left_layout
+                        #    cols:2
+                        padding: 10
+                        spacing: 10
+
+                        Label:
+                            text: "Nauta user 1: "
+                            # size_hint: .2, 1
+
+                        TextInput:
+                            id: ti_nauta_user_1
+                            text: "wendy8410@nauta.com.cu"
+                            # size_hint: .3, 1
+
+                        Label:
+                            text: "Password 1: "
+                            # size_hint: .2, 1
+
+                        TextInput:
+                            id: ti_nauta_pass_1
+                            password: True
+                            # size_hint: .3, 1
+
+                        Label:
+                            text: "Nauta user 2: "
+                            # size_hint: .2, 1
+
+                        TextInput:
+                            id: ti_nauta_user_2
+                            text: "wendy8410@nauta.com.cu"
+                            # size_hint: .3, 1
+
+                        Label:
+                            text: "Password 2: "
+                            # size_hint: .2, 1
+
+                        TextInput:
+                            id: ti_nauta_pass_2
+                            password: True
+                            # size_hint: .3, 1
+
+                        Label:
+                            text: "Nauta user 3: "
+                            # size_hint: .2, 1
+
+                        TextInput:
+                            id: ti_nauta_user_3
+                            text: "wendy8410@nauta.com.cu"
+                            # size_hint: .3, 1
+
+                        Label:
+                            text: "Password 3: "
+                            # size_hint: .2, 1
+
+                        TextInput:
+                            id: ti_nauta_pass_3
+                            password: True
+                            # size_hint: .3, 1
+
+                        Label:
+                            text: "Start: "
+                            # size_hint: .2, 1
+
+                        TextInput:
+                            id: ti_start_time
+                            text: "07:00"
+                            # size_hint: .3, 1
+
+                        Label:
+                            text: "Check online frec.: "
+                            # size_hint: .2, 1
+
+                        TextInput:
+                            id: ti_check_online_frec
+                            text: "15"
+                            # size_hint: .3, 1
+
+                        Label:
+                            text: "End: "
+                            # size_hint: .2, 1
+
+                        TextInput:
+                            id: ti_end_time
+                            text: "19:00"
+                            # size_hint: .3, 1
+
+                        Label:
+                            text: "Check offline frec.: "
+                            # size_hint: .2, 1
+
+                        TextInput:
+                            id: ti_check_offline_frec
+                            text: "60"
+                            # size_hint: .3, 1
+
+                        Label:
+                            text: "Router IP: "
+                            # size_hint: .2, 1
+
+                        TextInput:
+                            id: ti_router_ip
+                            text: "192.168.1.1"
+                            # size_hint: .3, 1
+
+                        Label:
+                            text: "Auto connect: "
+                            # size_hint: .2, 1
+
+                        Switch:
+                            id: sw_auto_conn
+                            active: True
+                            # size_hint: .3, 1
+
+                        Label:
+                            text: "Router username: "
+                            # size_hint: .2, 1
+
+                        TextInput:
+                            id: ti_router_user
+                            text: "admin"
+                            # size_hint: .3, 1
+
+                        Label:
+                            text: "Auto disconnect: "
+                            # size_hint: .2, 1
+
+                        Switch:
+                            id: sw_auto_disconn
+                            active: True
+                            # size_hint: .3, 1
+
+                        Label:
+                            text: "Router password: "
+                            # size_hint: .2, 1
+
+                        TextInput:
+                            id: ti_router_pass
+                            password: True
+                            text: "admin"
+                            # size_hint: .3, 1
+
+                        Label:
+                            text: "Force disconnect: "
+                            # size_hint: .2, 1
+
+                        Switch:
+                            id: sw_force_disconnect
+                            # size_hint: .3, 1
+
+                        Label:
+                            text: "Check ping host: "
+                            # size_hint: .2, 1
+
+                        TextInput:
+                            id: ti_check_ping_host
+                            text: "8.8.8.8"
+                            # size_hint: .3, 1
+
+                        Label:
+                            text: "Disconn. retry times: "
+                            # size_hint: .2, 1
+
+                        TextInput:
+                            id: ti_disconn_retry_times
+                            text: "5"
+                            # size_hint: .3, 1
+
+                        Widget:
+                            id: dummy
+                            # size_hint: .2, 1
+
+                        Widget:
+                            id: dummy
+                            # size_hint: .3, 1
+
+                        Widget:
+                            id: dummy
+                            # size_hint: .2, 1
+
+                        Widget:
+                            id: dummy.
+                            # size_hint: .3, 1
+
+                        Widget:
+                            id: dummy
+                            # size_hint: .2, 1
+
+                        Button:
+                            text: "Cancel"
+                            on_press: root.on_press_cancel_button()
+
+                        Button:
+                            text: "Save"
+                            # size_hint: .2, 1
+                            on_press: root.on_press_save_button()
+
+                        Widget:
+                            id: dummy.
+                            # size_hint: .3, 1
+
+
+
+
+
