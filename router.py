@@ -31,7 +31,7 @@ class Router:
     DEFAULT_TIMEOUT = 30
 
     def __init__(self, ip_address='', username='', password='', vendor='TP-LINK', model='TD-W8961N'):
-        self.web_driver = self.get_web_driver()
+        self.web_driver = None
         self.ip_address = ip_address  # '192.168.0.1'
         self.username = username  # 'admin'
         self.password = password  # 'Momi@1234'
@@ -65,6 +65,9 @@ class Router:
         return NautaProtocol.ping(host=self.ip_address)
 
     def web_restart(self, debug=False):
+        if self.web_driver is None:
+            self.web_driver = self.get_web_driver()
+
         if self.model in ['TD-W8961N']:
             self.web_driver.get('http://' + self.ip_address + self.LOGIN_URL)
             sleep(3)
