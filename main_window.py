@@ -1,3 +1,6 @@
+import functools
+import threading
+
 from kivy.properties import ObjectProperty
 from kivy.uix.floatlayout import FloatLayout
 import json
@@ -6,13 +9,16 @@ import time
 from nautasdk.exceptions import NautaLoginException, NautaLogoutException, NautaException, NautaPreLoginException
 from nautasdk.utils import clear, is_time_between
 from router import Router
-from configuration_manager import ConfigurationManager
+from configuration_manager import ConfigurationManager, Configuration
 from nautasdk.nauta_api import NautaClient, NautaProtocol
 from nautasdk import utils
 from kivy.clock import Clock, mainthread
 
 
 class MainWindow(FloatLayout):
+
+    stop = threading.Event()
+
     # Global vars
     RUNNING_TEXT = '*** Monitoreando conexión (Presione Ctrl + C para detener y cerrar sesión) ***'
     config_manager = ConfigurationManager()
@@ -57,78 +63,85 @@ class MainWindow(FloatLayout):
     def __init__(self, **kwargs):
         super(MainWindow, self).__init__(**kwargs)
 
-        self.status_text = ''
+    def set_config_params_from_config(self, config: Configuration):
+        if config:
+            pass
 
-    # @mainthread
-    def update_ti_status_text(self):
-        self.ti_status_console.text = self.status_text
+    @mainthread
+    def print(self, text: str):
+        # self.status_text = self.status_text + f'\n{text}'
+        # Clock.schedule_once(self.update_ti_status_text, 0)
+        # threading.Thread(target=self.update_ti_status_text(text)).start()
+        # Clock.schedule_once(functools.partial(self.update_ti_status_text, text))
+        self.ti_status_console.text = text
 
-    # @mainthread
-    def clear_ti_status_text(self):
+    @mainthread
+    def clear(self):
+        # Clock.schedule_once(clear_ti_status_text, 0)
+        # threading.Thread(target=clear_ti_status_text()).start()
+        # clear_ti_status_text()
         self.ti_status_console.text = ''
 
-    def print(self, text: str, *args):
-        self.status_text = self.status_text + f'\n{text}'
-        Clock.schedule_once(self.update_ti_status_text, 0)
-
-    def clear(self, *args):
-        Clock.schedule_once(self.clear_ti_status_text, 0)
-
     def monitor_connection_status(self):
-        if self.must_be_connected():
+        while self.tgl_btn_active.state == "down":
+            if self.stop.is_set():
+                # Stop running this thread so the main Python process can exit.
+                return
 
-            try:
-                if not NautaProtocol.ping(host=self.config.check_ping_host):
-                    self.connect(client=self.nauta_client)
+            if self.must_be_connected():
+
+                try:
+                    if not NautaProtocol.ping(host=self.config.check_ping_host):
+                        self.connect(client=self.nauta_client)
+                    else:
+                        sleep(self.config.connection_check_frequency_in_secs)
+                except NautaPreLoginException as ex:
+                    self.print(f'Error antes de iniciar la sesión: ({ex})')
+                except NautaLoginException as ex:
+                    self.print(f'Error iniciando sesión: ({ex})')
+                except NautaException as ex:
+                    self.print(f'Error de Nauta: ({ex})')
+                except Exception as ex:
+                    self.print(f'Error de conexión. Asegurese de estar conectado a la red ({ex})')
+                except KeyboardInterrupt:
+                    pass
+
+            if not self.must_be_connected():
+                connected = NautaProtocol.ping(host=self.config.check_ping_host)
+
+                if connected:
+                    for i in range(self.config.disconnection_retry_times):
+                        self.print(f'Intentando desconectar ({i + 1} of {self.config.disconnection_retry_times})')
+
+                        try:
+                            if self.disconnect(client=self.nauta_client):
+                                connected = NautaProtocol.ping(host=self.config.check_ping_host)
+                                break
+                        except NautaLogoutException as ex:
+                            self.print(f'Error cerrando sesión ({ex})')
+                        except NautaException as ex:
+                            self.print(f'Error de Nauta ({ex})')
+                        except Exception as ex:
+                            self.print(f'Error de conexión. Asegurese de estar conectado a la red ({ex})')
+
+                        sleep(10)
+
+                    if connected and not self.must_be_connected() and self.config.force_connection_close:
+                        self.print('Usted esta conectado y la conexion debe ser cerrada. El router será reiniciando!!!\n')
+
+                        try:
+                            if self.router.console_restart(debug=False, timeout=10):
+                                self.print('Router reiniciado satisfactoriamente')
+                            else:
+                                self.print('Fallo reiniciando el router')
+                        except Exception as ex:
+                            self.print(f"Ha ocurrido un error intentando reiniciar el router ({ex})")
+                        # finally:
+                        #     print_status_text()`
                 else:
-                    sleep(self.config.connection_check_frequency_in_secs)
-            except NautaPreLoginException as ex:
-                self.print(f'Error antes de iniciar la sesión: ({ex})')
-            except NautaLoginException as ex:
-                self.print(f'Error iniciando sesión: ({ex})')
-            except NautaException as ex:
-                self.print(f'Error de Nauta: ({ex})')
-            except Exception as ex:
-                self.print(f'Error de conexión. Asegurese de estar conectado a la red ({ex})')
-            except KeyboardInterrupt:
-                pass
-
-        if not self.must_be_connected():
-            connected = NautaProtocol.ping(host=self.config.check_ping_host)
-
-            if connected:
-                for i in range(self.config.disconnection_retry_times):
-                    self.print(f'Intentando desconectar ({i + 1} of {self.config.disconnection_retry_times})')
-
-                    try:
-                        if self.disconnect(client=self.nauta_client):
-                            connected = NautaProtocol.ping(host=self.config.check_ping_host)
-                            break
-                    except NautaLogoutException as ex:
-                        self.print(f'Error cerrando sesión ({ex})')
-                    except NautaException as ex:
-                        self.print(f'Error de Nauta ({ex})')
-                    except Exception as ex:
-                        self.print(f'Error de conexión. Asegurese de estar conectado a la red ({ex})')
-
-                    sleep(10)
-
-                if connected and not self.must_be_connected() and self.config.force_connection_close:
-                    self.print('Usted esta conectado y la conexion debe ser cerrada. El router será reiniciando!!!\n')
-
-                    try:
-                        if self.router.console_restart(debug=False, timeout=10):
-                            self.print('Router reiniciado satisfactoriamente')
-                        else:
-                            self.print('Fallo reiniciando el router')
-                    except Exception as ex:
-                        self.print(f"Ha ocurrido un error intentando reiniciar el router ({ex})")
-                    # finally:
-                    #     self.print_status_text()
-            else:
-                self.clear()
-                self.print_status_text()
-                sleep(self.config.disconnection_check_frequency_in_secs)
+                    self.clear()
+                    self.print_status_text()
+                    sleep(self.config.disconnection_check_frequency_in_secs)
 
     def connect(self, client=None):
 
@@ -141,7 +154,7 @@ class MainWindow(FloatLayout):
 
             with client.login():
                 self.clear()
-                self.print_status_text()
+                self.print_status_text
 
                 login_time = int(time.time())
                 self.print("[sesión iniciada]")
@@ -151,6 +164,11 @@ class MainWindow(FloatLayout):
 
                 try:
                     while True:
+                        if self.stop.is_set():
+                            # Stop running this thread so the main Python process can exit.
+                            # return
+                            break
+
                         if not client.is_logged_in or not NautaProtocol.ping(host=self.config.check_ping_host):
                             break
 
@@ -178,7 +196,8 @@ class MainWindow(FloatLayout):
             ))
             sleep(5)
             self.clear()
-            self.print_status_text()
+            # self.print_status_text()
+            Clock.schedule_once(self.print_status_text, 0)
         else:
             raise NautaPreLoginException("No se especificó ningón usuario para conectar")
 
@@ -231,40 +250,57 @@ class MainWindow(FloatLayout):
         return enough
 
     def print_status_text(self):
+        # print(self.RUNNING_TEXT)
+        # status = 'DESCONECTADO |---X---|'
+        # if self.is_online():
+        #     status = 'CONECTADO |<---->|'
+        # print(f'Usted esta {status}')
+
         self.print(self.RUNNING_TEXT)
+        # Clock.schedule_once(functools.partial(self.print, self.RUNNING_TEXT))
         status = 'DESCONECTADO |---X---|'
         if self.is_online():
             status = 'CONECTADO |<---->|'
         self.print(f'Usted esta {status}')
 
-    @mainthread
+    # def start_connection_monitor(self):
+    #     while True:
+    #         # print('startign while loop')
+    #         # self.clear()
+    #         # Clock.schedule_once(self.clear)
+    #         # self.print('clear done')
+    #         # self.print_status_text()
+    #         # Clock.schedule_once(self.clear)
+    #         # self.print_status_text()
+    #         try:
+    #             threading.Thread(target=self.monitor_connection_status).start()
+    #             # self.monitor_connection_status()
+    #
+    #         except KeyboardInterrupt:
+    #             pass
+    #         finally:
+    #             sleep(5)
+
     def on_press_authenticate_button(self):
         pass
 
-    @mainthread
     def on_press_cancel_button(self):
         pass
 
-    @mainthread
     def on_press_save_button(self):
         pass
 
     def on_press_active_toggle_button(self):
-        # self.print(f"state: {self.tgl_btn_active.text}")
-        # if self.tgl_btn_active.state == "down":
-        #     self.lbl_conn_status.text = "ONLINE"
-        # else:
-        #     self.lbl_conn_status.text = "OFFLINE"
+        if self.tgl_btn_active.state == "down":
+            threading.Thread(target=self.monitor_connection_status).start()
+        else:
+            return
+            #     self.lbl_conn_status.text = "OFFLINE"
 
-        while True:
-            self.clear()
-            self.print_status_text()
-            try:
-                self.monitor_connection_status()
-            except KeyboardInterrupt:
-                pass
-            finally:
-                sleep(5)
+
+        # self.start_connection_monitor()
+
+
 
 
 #####################
@@ -281,8 +317,8 @@ class MainWindow(FloatLayout):
 #                            default_check_page=config.check_connection_page)
 
 
-# def self.print_status_text():
-#     self.print(RUNNING_TEXT)
+# def print_status_text():
+#     print(RUNNING_TEXT)
 #     status = 'DESCONECTADO |---X---|'
 #     if is_online():
 #         status = 'CONECTADO |<---->|'
