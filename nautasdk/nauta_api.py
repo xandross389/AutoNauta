@@ -24,11 +24,13 @@ import json
 import re
 import os
 import time
+from ping3 import ping
 import http.cookiejar as cookielib
 
 import bs4
 import requests
 from requests import RequestException
+
 
 from os import system, name
 import platform
@@ -114,24 +116,24 @@ class NautaProtocol(object):
         }
 
     @classmethod
-    def is_connected(cls, ping_host):
+    def is_connected(cls, ping_host, timeout: int = 5.):
         return NautaProtocol.ping(ping_host)
+        # url = "http://www.kite.com"
+        # try:
+        #     request = requests.get(url, timeout=timeout)
+        #     return True
+        # except (requests.ConnectionError, requests.Timeout) as exception:
+        #     return False
 
     @classmethod
-    def ping(cls, host=PING_HOST):
-        parameter = '-n' if platform.system().lower() == 'windows' else '-c'
-        with open(os.devnull, 'w') as DEVNULL:
-            try:
-                subprocess.check_call(
-                    ['ping', parameter, '2', host],
-                    stdout=DEVNULL,  # suppress output
-                    stderr=DEVNULL
-                )
-                is_up = True
-            except subprocess.CalledProcessError:
-                is_up = False
+    def ping(cls, host: str = PING_HOST, timeout: int = 5):
 
-        return is_up
+        resp = ping(host, timeout=timeout)
+
+        if not resp:
+            return False
+        else:
+            return True
 
     @classmethod
     def create_session(cls, default_check_page=CHECK_PAGE):
