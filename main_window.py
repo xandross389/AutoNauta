@@ -69,24 +69,24 @@ class MainWindow(FloatLayout):
 
     @mainthread
     def print(self, text: str):
-        # self.status_text = self.status_text + f'\n{text}'
-        # Clock.schedule_once(self.update_ti_status_text, 0)
-        # threading.Thread(target=self.update_ti_status_text(text)).start()
-        # Clock.schedule_once(functools.partial(self.update_ti_status_text, text))
         self.ti_status_console.text = text
 
     @mainthread
     def clear(self):
-        # Clock.schedule_once(clear_ti_status_text, 0)
-        # threading.Thread(target=clear_ti_status_text()).start()
-        # clear_ti_status_text()
         self.ti_status_console.text = ''
+
+    @mainthread
+    def set_lbl_conn_status_text(self, status_text: str):
+        self.lbl_conn_status.text = ''
 
     def monitor_connection_status(self):
         while self.tgl_btn_active.state == "down":
             if self.stop.is_set():
                 # Stop running this thread so the main Python process can exit.
                 return
+
+            print('init done')
+            self.print_status_text()
 
             if self.must_be_connected():
 
@@ -136,12 +136,14 @@ class MainWindow(FloatLayout):
                                 self.print('Fallo reiniciando el router')
                         except Exception as ex:
                             self.print(f"Ha ocurrido un error intentando reiniciar el router ({ex})")
-                        # finally:
-                        #     print_status_text()`
+                        finally:
+                            self.print_status_text()
                 else:
                     self.clear()
                     self.print_status_text()
                     sleep(self.config.disconnection_check_frequency_in_secs)
+        # else:
+        #     return
 
     def connect(self, client=None):
 
@@ -154,7 +156,7 @@ class MainWindow(FloatLayout):
 
             with client.login():
                 self.clear()
-                self.print_status_text
+                self.print_status_text()
 
                 login_time = int(time.time())
                 self.print("[sesión iniciada]")
@@ -196,8 +198,7 @@ class MainWindow(FloatLayout):
             ))
             sleep(5)
             self.clear()
-            # self.print_status_text()
-            Clock.schedule_once(self.print_status_text, 0)
+            self.print_status_text()
         else:
             raise NautaPreLoginException("No se especificó ningón usuario para conectar")
 
@@ -261,6 +262,9 @@ class MainWindow(FloatLayout):
         status = 'DESCONECTADO |---X---|'
         if self.is_online():
             status = 'CONECTADO |<---->|'
+            self.set_lbl_conn_status_text(status_text="ONLINE")
+        else:
+            self.set_lbl_conn_status_text(status_text="OFFLINE")
         self.print(f'Usted esta {status}')
 
     # def start_connection_monitor(self):
@@ -292,10 +296,11 @@ class MainWindow(FloatLayout):
 
     def on_press_active_toggle_button(self):
         if self.tgl_btn_active.state == "down":
-            threading.Thread(target=self.monitor_connection_status).start()
+            threading.Thread(target=self.monitor_connection_status, args=()).start()
         else:
+            self.lbl_conn_status.text = "OFFLINE"
             return
-            #     self.lbl_conn_status.text = "OFFLINE"
+
 
 
         # self.start_connection_monitor()
