@@ -14,6 +14,7 @@
     lbl_time_remaining: lbl_time_remaining
     ti_status_console: ti_status_console
     # Configuration tab
+    configuration_layout: configuration_layout
     ti_nauta_user_1: ti_nauta_user_1
     ti_nauta_user_2: ti_nauta_user_2
     ti_nauta_user_3: ti_nauta_user_3
@@ -111,7 +112,8 @@
 
                             Label:
                                 id: lbl_conn_status
-                                text: "ONLINE"
+                                #text: "OFFLINE"
+                                text: ""
                                 color: "00ff00" if lbl_conn_status.text == "ONLINE" else "ff0000"
 
                             Label:
@@ -119,33 +121,38 @@
 
                             Label:
                                 id: lbl_time_connected
-                                text: "00:00:00"
+                                #text: "00:00:00"
+                                text: ""
 
                             Label:
                                 text: "Connected user: "
 
                             Label:
                                 id: lbl_connected_user
-                                text: "wendy8410@nauta.com.cu"
+                                text: ""
 
                             Label:
                                 text: "Time remaining: "
 
                             Label:
                                 id: lbl_time_remaining
-                                text: "00:00:00"
+                                #text: "00:00:00"
+                                text: ""
 
+                        #Label:
+                        #    text: "Console logs: "
 
                         TextInput:
                             id: ti_status_console
                             multiline: True
                             readonly: True
-                            text: "--"
+                            text: ""
 
                 # Configuration TAB
                 TabbedPanelItem:
                     text: "Configuration"
                     GridLayout:
+                        id: configuration_layout
                         cols: 4
                         #size_hint: 1, .95
 
@@ -167,7 +174,7 @@
 
                         TextInput:
                             id: ti_nauta_user_1
-                            text: "wendy8410@nauta.com.cu"
+                            text: ""
                             # size_hint: .3, 1
 
                         Label:
@@ -185,7 +192,7 @@
 
                         TextInput:
                             id: ti_nauta_user_2
-                            text: "wendy8410@nauta.com.cu"
+                            text: ""
                             # size_hint: .3, 1
 
                         Label:
@@ -203,7 +210,7 @@
 
                         TextInput:
                             id: ti_nauta_user_3
-                            text: "wendy8410@nauta.com.cu"
+                            text: ""
                             # size_hint: .3, 1
 
                         Label:

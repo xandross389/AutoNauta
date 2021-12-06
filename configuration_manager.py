@@ -17,7 +17,7 @@ class Configuration:
                  conn_begin_time='07:30', conn_end_time='17:30', conn_check_freq=30,
                  disconn_check_freq=60, disconnection_retry_times=5,
                  router_ip='192.168.1.1', router_username='admin', router_password='admin', check_ping_host='8.8.8.8',
-                 force_connection_close=False):
+                 force_connection_close=False, auto_connect=True, auto_disconnect=True):
         self._credentials = list()
         self._router_ip = router_ip
         self._router_username = router_username
@@ -30,6 +30,8 @@ class Configuration:
         self._connection_check_frequency = conn_check_freq  # frequency in minutes
         self._disconnection_check_frequency = disconn_check_freq  # frequency in minutes
         self._disconnection_retry_times = disconnection_retry_times
+        self._auto_connect = auto_connect
+        self._auto_disconnect = auto_disconnect
 
     def update_credentials(self, credentials):
         """
@@ -119,6 +121,14 @@ class Configuration:
     def disconnection_retry_times(self):
         return self._disconnection_retry_times
 
+    @property
+    def auto_connect(self):
+        return self._auto_connect
+
+    @property
+    def auto_disconnect(self):
+        return self._auto_disconnect
+
     @credentials.setter
     def credentials(self, credentials):
         self._credentials = credentials
@@ -167,6 +177,14 @@ class Configuration:
     def connection_check_frequency(self, value):
         self._connection_check_frequency = value
 
+    @auto_connect.setter
+    def auto_connect(self, value):
+        self._auto_connect = value
+
+    @auto_disconnect.setter
+    def auto_disconnect(self, value):
+        self._auto_disconnect = value
+
 
 class ConfigurationManager:
     def __init__(self, config_file=DEFAULT_CONFIG_FILENAME):
@@ -191,7 +209,9 @@ class ConfigurationManager:
             'force_connection_close': self._config.force_connection_close,
             'connection_check_frequency': self._config.connection_check_frequency,
             'disconnection_check_frequency': self._config.disconnection_check_frequency,
-            'disconnection_retry_times': self._config.disconnection_retry_times
+            'disconnection_retry_times': self._config.disconnection_retry_times,
+            'auto_connect': self._config.auto_connect,
+            'auto_disconnect': self._config.auto_disconnect,
         }
 
         with open(self._config_file, 'w') as outfile:
@@ -218,6 +238,8 @@ class ConfigurationManager:
                     self._config.connection_check_frequency = config_string['connection_check_frequency']
                     self._config.disconnection_check_frequency = config_string['disconnection_check_frequency']
                     self._config.disconnection_retry_times = config_string['disconnection_retry_times']
+                    self._config.auto_connect = config_string['auto_connect']
+                    self._config.auto_disconnect = config_string['auto_disconnect']
                 except Exception as assign_error:
                     print('Error assigning json field - ' + str(assign_error))
         except Exception as file_err:

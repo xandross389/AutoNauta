@@ -56,3 +56,8 @@ def is_time_between(begin_time, end_time, check_time=None):
         return begin_time <= check_time <= end_time
     else: # crosses midnight
         return check_time >= begin_time or check_time <= end_time
+
+
+def curr_datetime_str():
+    # now = datetime.now()
+    return datetime.now().strftime("%D %H:%M:%S")
