@@ -3,5 +3,5 @@
 /.vscode/
 /.idea/
 config.json
-/__pycache__/
-nautasdk/__pycache__/
+__pycache__/
+.env/
