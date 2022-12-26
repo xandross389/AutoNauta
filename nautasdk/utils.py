@@ -1,7 +1,6 @@
 import re
 from os import system, name
 from datetime import datetime
-
 from nautasdk.exceptions import NautaFormatException
 
 _re_time = re.compile(r'^\s*(?P<hours>\d+?)\s*:\s*(?P<minutes>\d+?)\s*:\s*(?P<seconds>\d+?)\s*$')

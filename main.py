@@ -1,92 +1,73 @@
+from dis import findlinestarts
 import json
 from time import sleep
 import time
 from nautasdk.exceptions import NautaLoginException, NautaLogoutException, NautaException, NautaPreLoginException
 from nautasdk.utils import clear, is_time_between
 from router import Router
-
 from configuration_manager import ConfigurationManager, Configuration
 from nautasdk.nauta_api import NautaClient, NautaProtocol
 from nautasdk import utils
+import asyncio
+from termcolor import colored
 
 # internal constants
-RUNNING_TEXT = '*** Monitoreando conexión (Presione Ctrl + C para detener y cerrar sesión) ***'
+IS_ONLINE = False
+KEEP_MONITORING = True
+RUNNING_TEXT = colored('*** Monitoreando conexión (Presione Ctrl + C para detener y cerrar sesión) ***', 'yellow')
 config_manager = ConfigurationManager()
 config = config_manager.get_config()
 
 # global router object to manage router
 router = Router(ip_address=config.router_ip, username=config.router_username, password=config.router_password)
 # global nauta client object to manage sessions
-nauta_client = NautaClient(user=config.credentials[0]['username'], password=config.credentials[0]['password'],
-                           default_check_page=config.check_connection_page)
+nauta_client = NautaClient(user=config.credentials[0]['username'], password=config.credentials[0]['password'], default_check_page=config.check_connection_page)
 
+async def online_monitor():
+    global IS_ONLINE
+    while True:
+        check_online = asyncio.create_task(is_online()) #init the other task
+        clear()
+        await asyncio.sleep(0.5)
+        print_status_text()
+        await asyncio.sleep(config.connection_check_frequency_in_secs) #waits 2 secs in the main thread (you can delte this line if your iteration delays making computation)
+        if not IS_ONLINE: #is_online():
+            try:
+                connect(client=nauta_client)
+            except Exception as e:
+                print(f"Error connecting to nauta: {e}")
+        check_online.cancel()
+        print_status_text()
+
+async def is_online() -> bool:
+    global IS_ONLINE
+    IS_ONLINE = NautaClient.ping(config.check_ping_host, 1)
+    await asyncio.sleep(1)
 
 def print_status_text():
     print(RUNNING_TEXT)
-    status = 'DESCONECTADO |---X---|'
-    if is_online():
-        status = 'CONECTADO |<---->|'
-    print(f'Usted esta {status}')
+    status = colored('DESCONECTADO |---X---|', 'red')
+    # if is_online():
+    if IS_ONLINE:
+        status = colored('CONECTADO |<---->|', 'green')
+    print(f'Usted está {status}')
 
-
-def monitor_connection_status():
-    if must_be_connected():
-
-        try:
-            if not NautaProtocol.ping(host=config.check_ping_host):
-                connect(client=nauta_client)
-            else:
-                sleep(config.connection_check_frequency_in_secs)
-        except NautaPreLoginException as ex:
-            print(f'Error antes de iniciar la sesión: ({ex})')
-        except NautaLoginException as ex:
-            print(f'Error iniciando sesión: ({ex})')
-        except NautaException as ex:
-            print(f'Error de Nauta: ({ex})')
-        except Exception as ex:
-            print(f'Error de conexión. Asegurese de estar conectado a la red ({ex})')
-        except KeyboardInterrupt:
-            pass
-
-    if not must_be_connected():
-        connected = NautaProtocol.ping(host=config.check_ping_host)
-
-        if connected:
-            for i in range(config.disconnection_retry_times):
-                print(f'Intentando desconectar ({i + 1} of {config.disconnection_retry_times})')
-
-                try:
-                    if disconnect(client=nauta_client):
-                        connected = NautaProtocol.ping(host=config.check_ping_host)
-                        break
-                except NautaLogoutException as ex:
-                    print(f'Error cerrando sesión ({ex})')
-                except NautaException as ex:
-                    print(f'Error de Nauta ({ex})')
-                except Exception as ex:
-                    print(f'Error de conexión. Asegurese de estar conectado a la red ({ex})')
-
-                sleep(10)
-
-            if connected and not must_be_connected() and config.force_connection_close:
-                print('Usted esta conectado y la conexion debe ser cerrada. El router será reiniciando!!!\n')
-
-                try:
-                    if router.console_restart(debug=False, timeout=10):
-                        print('Router reiniciado satisfactoriamente')
-                    else:
-                        print('Fallo reiniciando el router')
-                except Exception as ex:
-                    print(f"Ha ocurrido un error intentando reiniciar el router ({ex})")
-                # finally:
-                #     print_status_text()
-        else:
-            clear()
-            print_status_text()
-            sleep(config.disconnection_check_frequency_in_secs)
-
+async def monitor_connection_status():
+    clear()
+    print_status_text()
+    if not IS_ONLINE: #is_online():
+        connect(client=nauta_client)
+    else:
+        sleep(config.connection_check_frequency_in_secs) 
 
 def connect(client=None):
+    count = 0
+    while True:
+        count += 1
+        clear()
+        print_status_text()
+        print(f"Testing login functionality ({count})...\n")
+        sleep(10)
 
     if client:
         print(
@@ -136,8 +117,7 @@ def connect(client=None):
         clear()
         print_status_text()
     else:
-        raise NautaPreLoginException("No se especificó ningón usuario para conectar")
-
+        raise NautaPreLoginException("No se especificó ningún usuario para conectar")
 
 def disconnect(client=None):
     # client = NautaClient(user=config.credentials[0]['username'], password=config.credentials[0]['password'],
@@ -154,28 +134,8 @@ def disconnect(client=None):
     else:
         raise NautaLogoutException("No se especificó ningún usuario para desconectar")
 
-
-def is_online():
-    online = False
-    try:
-        online = NautaProtocol.is_connected(ping_host=config.check_ping_host)
-    except ConnectionRefusedError as ex:
-        print('La conexión fue rechazada por el host remoto - ' + str(ex))
-    except ConnectionResetError as ex:
-        print('La conexión fue reiniciada por el host remoto - ' + str(ex))
-    except ConnectionAbortedError as ex:
-        print('La conexión fue abortada por el host remoto - ' + str(ex))
-    except ConnectionError as ex:
-        print('Error de conexión. Asegurese de estar conectado a una red - ' + str(ex))
-    except Exception as ex:
-        print('Ha ocurrido un error intentando determinar el estado de la conexión - ' + str(ex))
-    finally:
-        return online
-
-
 def must_be_connected():
     return is_time_between(config.connection_begin_time, config.connection_end_time)
-
 
 def enough_user_remaining_time(client=None, threshold=1):
     """
@@ -187,17 +147,19 @@ def enough_user_remaining_time(client=None, threshold=1):
     if client:
         if utils.strtime2seconds(client.remaining_time) >= threshold:
             enough = True
-
     return enough
 
 
 if __name__ == '__main__':
-    while True:
-        clear()
-        print_status_text()
-        try:
-            monitor_connection_status()
-        except KeyboardInterrupt:
-            pass
-        finally:
-            sleep(5)
+    asyncio.run(online_monitor())
+
+    # while True:
+    #     clear()
+    #     print_status_text()
+    #     try:
+    #         monitor_connection_status()
+    #     except KeyboardInterrupt:
+    #         print("\nExiting...")
+    #         exit(0)
+    #     finally:
+    #         sleep(5)

@@ -24,17 +24,15 @@ import json
 import re
 import os
 import time
-from ping3 import ping
 import http.cookiejar as cookielib
 
 import bs4
 import requests
 from requests import RequestException
 
-from os import system, name
+import os
 import platform
 import subprocess
-import os
 
 from nautasdk import appdata_path
 from nautasdk.exceptions import NautaLoginException, NautaLogoutException, NautaException, NautaPreLoginException
@@ -119,14 +117,26 @@ class NautaProtocol(object):
         return NautaProtocol.ping(ping_host)
 
     @classmethod
-    def ping(cls, host: str = PING_HOST, timeout: int = 5):
+    def ping(cls, host: str = PING_HOST, count: int = 5):
 
-        resp = ping(host, timeout=timeout)
+        assert host != ""
+        assert count >= 1
 
-        if not resp:
-            return False
-        else:
-            return True
+        is_up = False
+        command = []
+
+        if os.name == 'posix': # linux and macos
+            command = ['ping', '-c', str(count), host]
+        else: # windows
+            command = ['ping', '/n', str(count), host]
+
+        with open(os.devnull, 'w') as DEVNULL:
+            try:
+                subprocess.check_call(command, stdout=DEVNULL, stderr=DEVNULL)
+                is_up = True
+            except subprocess.CalledProcessError:
+                is_up = False
+        return is_up
 
     @classmethod
     def create_session(cls, default_check_page=CHECK_PAGE):
