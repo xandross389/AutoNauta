@@ -27,21 +27,21 @@ async def online_monitor():
     global IS_ONLINE
     while True:
         check_online = asyncio.create_task(is_online()) #init the other task
+        await asyncio.sleep(5)
         clear()
-        await asyncio.sleep(0.5)
         print_status_text()
-        await asyncio.sleep(config.connection_check_frequency_in_secs) #waits 2 secs in the main thread (you can delte this line if your iteration delays making computation)
         if not IS_ONLINE: #is_online():
             try:
                 connect(client=nauta_client)
             except Exception as e:
                 print(f"Error connecting to nauta: {e}")
+        await asyncio.sleep(config.connection_check_frequency_in_secs) #waits 2 secs in the main thread (you can delte this line if your iteration delays making computation)
         check_online.cancel()
         print_status_text()
 
 async def is_online() -> bool:
     global IS_ONLINE
-    IS_ONLINE = NautaClient.ping(config.check_ping_host, 1)
+    IS_ONLINE = NautaProtocol.ping(config.check_ping_host, 1)
     await asyncio.sleep(1)
 
 def print_status_text():
@@ -61,14 +61,6 @@ async def monitor_connection_status():
         sleep(config.connection_check_frequency_in_secs) 
 
 def connect(client=None):
-    count = 0
-    while True:
-        count += 1
-        clear()
-        print_status_text()
-        print(f"Testing login functionality ({count})...\n")
-        sleep(10)
-
     if client:
         print(
             "Conectando usuario: {}".format(
@@ -89,9 +81,6 @@ def connect(client=None):
             try:
                 while True:
                     if not client.is_logged_in or not NautaProtocol.ping(host=config.check_ping_host):
-                        break
-
-                    if not must_be_connected():
                         break
 
                     elapsed = int(time.time()) - login_time
@@ -149,17 +138,5 @@ def enough_user_remaining_time(client=None, threshold=1):
             enough = True
     return enough
 
-
 if __name__ == '__main__':
     asyncio.run(online_monitor())
-
-    # while True:
-    #     clear()
-    #     print_status_text()
-    #     try:
-    #         monitor_connection_status()
-    #     except KeyboardInterrupt:
-    #         print("\nExiting...")
-    #         exit(0)
-    #     finally:
-    #         sleep(5)
